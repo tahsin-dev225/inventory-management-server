@@ -67,17 +67,29 @@ async function run() {
         res.send(result)
     })
 
-    app.get('/products', async (req,res)=>{
-        const result = await productCollection.find().toArray();
-        res.send(result)
-    })
+    // app.get('/products', async (req,res)=>{
+    //     const result = await productCollection.find().toArray();
+    //     res.send(result)
+    // })
     
-    app.get('/products/:name', async (req,res)=>{
-        const name = req.params.name;
-        const query = {name : name}
-        const result = await productCollection.findOne(query)
-        res.send(result)
-    })
+    // app.get('/products/:name', async (req,res)=>{
+    //     const name = req.params.name;
+    //     const query = {name : name}
+    //     const result = await productCollection.findOne(query)
+    //     res.send(result)
+    // })
+
+    app.get('/products', async(req, res) => {
+        const page = parseInt(req.query.page - 1)
+        const size = parseInt(req.query.size)
+  
+        console.log('pagination', page, size)
+        const result = await productCollection.find()
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+        res.send(result);
+      })
 
 } finally {
     // Ensures that the client will close when you finish/error
