@@ -86,13 +86,14 @@ async function run() {
         const page = parseInt(req.query.page)
         const size = parseInt(req.query.size)
         const currentPage = page -1;
-  
+
+        const total = await productCollection.estimatedDocumentCount()
         console.log('pagination', page, size)
         const result = await productCollection.find()
         .skip(currentPage * size)
         .limit(size)
         .toArray();
-        res.send(result);
+        res.send({result,total});
       })
 
 } finally {
