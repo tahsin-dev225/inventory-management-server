@@ -6,7 +6,10 @@ const port = process.env.PORT || 5000;
 
 // middleware
 app.use(cors({
-    origin : ["http://localhost:3000"],
+    origin : [
+        "http://localhost:3000","https://inventory-management-two-sigma.vercel.app"
+
+    ],
     credentials:true
   }));
 app.use(express.json());
@@ -80,12 +83,13 @@ async function run() {
     // })
 
     app.get('/products', async(req, res) => {
-        const page = parseInt(req.query.page - 1)
+        const page = parseInt(req.query.page)
         const size = parseInt(req.query.size)
+        const currentPage = page -1;
   
         console.log('pagination', page, size)
         const result = await productCollection.find()
-        .skip(page * size)
+        .skip(currentPage * size)
         .limit(size)
         .toArray();
         res.send(result);
