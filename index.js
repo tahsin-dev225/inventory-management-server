@@ -86,14 +86,28 @@ async function run() {
         const page = parseInt(req.query.page)
         const size = parseInt(req.query.size)
         const currentPage = page -1;
-
+        const search = req.query?.search;
+        const query = {}
+ 
         const total = await productCollection.estimatedDocumentCount()
-        console.log('pagination', page, size)
-        const result = await productCollection.find()
+        console.log('pagination', page,size,currentPage,total)
+
+        if(search){
+           query.name=search
+        //    console.log(q)
+        }
+
+        const result = await productCollection.find(query)
         .skip(currentPage * size)
         .limit(size)
         .toArray();
-        res.send({result,total});
+
+        res.send({result,metaData:{
+            currentPage : page,
+            pageSize : page,
+            totalItem : total,
+        }});
+
       })
 
 } finally {
