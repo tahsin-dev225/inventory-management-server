@@ -45,6 +45,20 @@ async function run() {
         res.send(result)
     })
 
+    app.get('/isLogged/:email', async (req,res)=>{
+        const email = req.params.email;
+        const query = {email : email};
+        // console.log(email)
+        const axistUser = await userCollection.findOne(query)
+        console.log('exis ',axistUser)
+        if(axistUser){
+            return res.status(200).send(axistUser)
+        }
+        
+        res.status(401).send({message : "User not found."})
+        
+    })
+
     app.get('/users', async(req,res)=>{
         const result = await userCollection.find().toArray()
         res.send(result)
@@ -52,7 +66,7 @@ async function run() {
 
     app.get('/isAdmin/:user', async(req,res)=>{
         const email = req.params.user;
-        console.log(email)
+        // console.log(email)
         const query = { email : email}
         const result = await userCollection.findOne(query)
         res.send(result)
@@ -70,17 +84,7 @@ async function run() {
         res.send(result)
     })
 
-    // app.get('/products', async (req,res)=>{
-    //     const result = await productCollection.find().toArray();
-    //     res.send(result)
-    // })
-    
-    // app.get('/products/:name', async (req,res)=>{
-    //     const name = req.params.name;
-    //     const query = {name : name}
-    //     const result = await productCollection.findOne(query)
-    //     res.send(result)
-    // })
+
 
     app.get('/products', async(req, res) => {
         const page = parseInt(req.query.page)
@@ -89,14 +93,12 @@ async function run() {
         const search = req.query?.search;
         const query = {}
  
-        const total = await productCollection.estimatedDocumentCount()
-        console.log('pagination', page,size,currentPage,total)
+        const total = await productCollection.countDocuments(query)
+        // console.log('pagination', page,size,currentPage,total)
 
         if(search){
-           query.name=search
-        //    console.log(q)
+           query.name=search;
         }
-
         const result = await productCollection.find(query)
         .skip(currentPage * size)
         .limit(size)
