@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const port = process.env.PORT || 5000;
 
@@ -26,13 +27,48 @@ const client = new MongoClient(uri, {
   }
 });
 
-
 async function run() {
     try {
     // await client.connect();
     const userCollection = client.db("inventory-management").collection("users");
     const productCollection = client.db("inventory-management").collection("products");
     
+    app.post('/jwt', async (req,res)=>{
+        const user = req.body;
+        const token = jwt.sign(user , process.env.ACCESS_TOKEN_SECRET , {expiresIn : '1h'});
+        res.send({token});
+    })
+
+    // middlewere
+    const verifyToken = (req,res,next)=>{
+        // console.log('inside the token',req.headers);
+        // console.log('requiatst stle',req);
+        if(!req.headers.authorization){
+            return res.status(401).send({message: 'unauthorize access athorization'})
+        }
+        const token = req.headers.authorization.split(' ')[1];
+        jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+        if(err){
+          return res.status(401).send({message: 'unauthorize access'})
+        }
+        req.decoded = decoded;
+        // console.log('decode',decoded)
+        next();
+      })
+    }
+
+    // use verify admin after verifyToken
+    const verifyAdmin = async(req,res,next)=>{
+    const email = req.decoded.email;
+    const query = {email : email};
+    const user = await userCollection.findOne(query);
+    const isAdmin = user?.role === 'admin';
+    if(!isAdmin){
+        return res.status(403).send({message: 'forbiden access'});
+    }
+    // console.log('admin re role t--',user?.role, 'kp',email,'inds',user)
+    next()
+    }
 
     app.post('/users', async(req,res)=>{
         const user = req.body;
@@ -50,13 +86,11 @@ async function run() {
         const query = {email : email};
         // console.log(email)
         const axistUser = await userCollection.findOne(query)
-        console.log('exis ',axistUser)
+        // console.log('exis ',axistUser)
         if(axistUser){
             return res.status(200).send(axistUser)
         }
-        
         res.status(401).send({message : "User not found."})
-        
     })
 
     app.get('/users', async(req,res)=>{
@@ -72,6 +106,11 @@ async function run() {
         res.send(result)
     })
 
+    app.get('/allUsers', async(req,res)=>{
+        const result = await userCollection.find().toArray()
+        res.send(result)
+    })
+
     app.post('/products', async (req,res)=>{
         const product = req.body;
         const newName = product.name;
@@ -84,9 +123,7 @@ async function run() {
         res.send(result)
     })
 
-
-
-    app.get('/products', async(req, res) => {
+    app.get('/products', verifyToken,verifyAdmin, async(req, res) => {
         const page = parseInt(req.query.page)
         const size = parseInt(req.query.size)
         const currentPage = page -1;
@@ -94,8 +131,6 @@ async function run() {
         const query = {}
  
         const total = await productCollection.countDocuments(query)
-        // console.log('pagination', page,size,currentPage,total)
-
         if(search){
            query.name=search;
         }
