@@ -32,6 +32,7 @@ async function run() {
     // await client.connect();
     const userCollection = client.db("inventory-management").collection("users");
     const productCollection = client.db("inventory-management").collection("products");
+    const orderCollection = client.db("inventory-management").collection("orders");
     
     app.post('/jwt', async (req,res)=>{
         const user = req.body;
@@ -64,7 +65,7 @@ async function run() {
     const user = await userCollection.findOne(query);
     const isAdmin = user?.role === 'admin';
     if(!isAdmin){
-        return res.status(403).send({message: 'forbiden access'});
+        return res.status(403).send({message: 'forbiden access you are not admin'});
     }
     // console.log('admin re role t--',user?.role, 'kp',email,'inds',user)
     next()
@@ -123,10 +124,10 @@ async function run() {
         res.send(result)
     })
 
-    app.get('/products', verifyToken,verifyAdmin, async(req, res) => {
+    app.get('/products',verifyToken,  async(req, res) => {
         const page = parseInt(req.query.page)
         const size = parseInt(req.query.size)
-        const currentPage = page -1;
+        const currentPage = page -1 ;
         const search = req.query?.search;
         const query = {}
  
@@ -145,6 +146,45 @@ async function run() {
             totalItem : total,
         }});
 
+      })
+
+      app.get('/productName', async(req,res)=>{
+        const result = await productCollection.find().toArray();
+        res.send(result)
+      })
+
+      app.get('/productName/:name', async(req,res)=>{
+        const name = req.params.name;
+        const query = {name : name}
+        const result = await productCollection.findOne(query)
+        res.send(result)
+      })
+
+      app.post('/order', async(req,res)=>{
+        const orderProduct = req.body;
+        // const result = await orderCollection.insertOne(orderProduct)
+        // console.log(orderProduct)
+        // const productQuantity = parseInt(orderProduct?.orderQuantity)
+        const productName = {name : orderProduct?.productName}
+        const product = await productCollection.findOne(productName);
+        const productQuantity = parseInt(product?.quantity)
+        const newQuantity = productQuantity - orderProduct?.orderQuantity
+        // console.log(product)
+        const updatedDoc = {
+            $set:{
+                quantity : newQuantity
+            }
+          }
+        
+
+        const updateQuantity = await productCollection.updateOne(productName , updatedDoc )
+        const result = await orderCollection.insertOne(orderProduct)
+        res.send(updateQuantity)
+      })
+
+      app.get('/order', async(req,res)=>{
+        const result = await orderCollection.find().toArray();
+        res.send(result)
       })
 
 } finally {
