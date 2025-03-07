@@ -183,8 +183,34 @@ async function run() {
       })
 
       app.get('/order', async(req,res)=>{
-        const result = await orderCollection.find().toArray();
-        res.send(result)
+        const page = parseInt(req.query.page)
+        const size = parseInt(req.query.size)
+        const currentPage = page -1 ;
+        const search = req.query?.search
+        let query = {};
+
+        if (search) {
+            query = {
+                $or: [
+                    { userName:  search }, 
+                    { userEmail: search },
+                    { productName: search }
+                ]
+            };
+        }
+
+        const total = await orderCollection.countDocuments(query)
+        
+        const result = await orderCollection.find(query)
+        .skip(currentPage * size)
+        .limit(size)
+        .toArray();
+
+        res.send({result,metaData:{
+            currentPage : page,
+            pageSize : page,
+            totalItem : total,
+        }});
       })
 
 } finally {
